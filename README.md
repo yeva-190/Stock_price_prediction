@@ -8,7 +8,7 @@ The project uses historical stock price data of the company, which is obtained f
 
 # Models
 
-The project uses various machine learning models such as linear regression, decision tree, random forest, and support vector machine, to predict the stock price of the company. The models are trained on the preprocessed dataset and evaluated using various performance metrics such as mean squared error, mean absolute error, and R-squared. The best-performing model is selected based on the evaluation results.
+The project mainly uses machine learning model Long-short-term-memory or simply LSTM , to predict the stock price of the company. 
 
 # Usage
 To run the project, first clone the repository to your local machine using the following command:
