@@ -1,4 +1,4 @@
-# Stok_price_prediction
+# Stock_price_prediction
 
 This project aims to predict the stock price of a company using machine learning techniques. The project is built using Python and relies on various data processing and machine learning libraries such as pandas, numpy, scikit-learn, and matplotlib.
 
