@@ -8,7 +8,7 @@ The project uses historical stock price data of the company, which is obtained f
 
 # Models
 
-The project mainly uses machine learning model Long-short-term-memory or simply LSTM , to predict the stock price of the company. 
+The project mainly uses machine learning model Long-short-term-memory or simply LSTM,RNN,Gradient Boosting regressor and linear regression to predict the stock price of the company. (However, some models were too simple to capture all the data and did not perform well, they need further improvement)
 
 # Usage
 To run the project, first clone the repository to your local machine using the following command:
