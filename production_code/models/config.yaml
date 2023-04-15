@@ -1,0 +1,21 @@
+# General settings
+name: my-project
+description: Stock price prediction project
+
+# Data settings
+data_dir: data/
+train_data_file: train.csv
+test_data_file: test.csv
+
+# Model settings
+model_type: LSTM
+hidden_layers: 2
+hidden_units: 64
+dropout_rate: 0.2
+epochs: 50
+batch_size: 32
+
+# Evaluation settings
+metrics:
+  - mean_squared_error
+  - r2_score
