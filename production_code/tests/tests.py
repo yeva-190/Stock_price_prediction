@@ -1,250 +1,253 @@
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-import numpy as np
-import pytest
 import unittest
-from my_code import prepare_data, build_model
-
+import pytest
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from predict_stock_prices import predict_stock_prices
+import joblib
 
 # Linear Regression
-def test_train_test_split():
-    # create some test data
-    x = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    y = np.array([3, 7, 11, 15])
+df = pd.read_csv('msft.csv')
 
-    # perform train-test split
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+# Split the data into training and testing sets
+train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
 
-    # check that the shapes of the train and test data are correct
-    assert x_train.shape == (3, 2)
-    assert x_test.shape == (1, 2)
-    assert y_train.shape == (3,)
-    assert y_test.shape == (1,)
+class TestPredictStockPrices(unittest.TestCase):
+    def test_returns_tuple(self):
+        result = predict_stock_prices(df)
+        self.assertIsInstance(result, tuple)
 
+    def test_returns_correct_tuple_size(self):
+        result = predict_stock_prices(df)
+        self.assertEqual(len(result), 4)
 
-def test_linear_regression():
-    # create some test data
-    x_train = np.array([1, 2, 3, 4])
-    y_train = np.array([2, 4, 6, 8])
-    x_test = np.array([5, 6, 7, 8])
-    y_test = np.array([10, 12, 14, 16])
+    def test_coef_is_float(self):
+        result = predict_stock_prices(df)
+        self.assertIsInstance(result[1], float)
 
-    # train a linear regression model
+    def test_intercept_is_float(self):
+        result = predict_stock_prices(df)
+        self.assertIsInstance(result[2], float)
+
+    def test_confidence_is_float(self):
+        result = predict_stock_prices(df)
+        self.assertIsInstance(result[3], float)
+
+    def test_predicted_is_numpy_array(self):
+        result = predict_stock_prices(df)
+        self.assertIsInstance(result[0], np.ndarray)
+
+    def test_predicted_array_length_is_correct(self):
+        result = predict_stock_prices(df)
+        self.assertEqual(len(result[0]), len(df) * 0.2)
+
+    def test_plot_is_shown(self):
+        with patch('matplotlib.pyplot.show') as show_mock:
+            result = predict_stock_prices(df)
+            show_mock.assert_called_once()
+
+@pytest.mark.integration
+def test_integration_predict_stock_prices():
+    result = predict_stock_prices(df)
+    predicted, coef, intercept, confidence = result
+
     lr = LinearRegression()
-    lr.fit(x_train.reshape(-1, 1), y_train)
+    lr.fit(X_train, y_train)
+    expected_coef = lr.coef_
+    expected_intercept = lr.intercept_
+    expected_confidence = lr.score(X_test, y_test)
+    expected_predicted = lr.predict(X_test)
 
-    # check that the regression coefficient and intercept are correct
-    assert lr.coef_ == 2.0
-    assert lr.intercept_ == 0.0
-
-    # calculate the regression confidence
-    regression_confidence = lr.score(x_test.reshape(-1, 1), y_test)
-
-    # check that the confidence is greater than 0.5
-    assert regression_confidence > 0.5
-
-
-def test_predictions():
-    # create some test data
-    x_train = np.array([1, 2, 3, 4])
-    y_train = np.array([2, 4, 6, 8])
-    x_test = np.array([5, 6, 7, 8])
-    y_test = np.array([10, 12, 14, 16])
-
-    # train a linear regression model
-    lr = LinearRegression()
-    lr.fit(x_train.reshape(-1, 1), y_train)
-
-    # make predictions on the test data
-    predicted = lr.predict(x_test.reshape(-1, 1))
-
-    # check that the predictions are close to the true values
-    assert np.allclose(predicted, y_test, rtol=1e-2)
-
-
-@pytest.mark.mpl_image_compare
-def test_plot():
-    # create some test data
-    x_train = np.array([1, 2, 3, 4])
-    y_train = np.array([2, 4, 6, 8])
-    x_test = np.array([5, 6, 7, 8])
-    y_test = np.array([10, 12, 14, 16])
-
-    # train a linear regression model
-    lr = LinearRegression()
-    lr.fit(x_train.reshape(-1, 1), y_train)
-
-    # make predictions on the test data
-    predicted = lr.predict(x_test.reshape(-1, 1))
-
-    # plot the predictions
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=(15, 6))
-    ax.scatter(x_train, y_train
-
+    np.testing.assert_allclose(coef, expected_coef)
+    np.testing.assert_allclose(intercept, expected_intercept)
+    np.testing.assert_allclose(confidence, expected_confidence)
+    np.testing.assert_allclose(predicted, expected_predicted, rtol=1e-3, atol=1e-3)
 
 
 # LSTM
 
-
-class TestMyCode(unittest.TestCase):
+class TestLSTMPredictor(TestCase):
 
     def setUp(self):
-        # Define some common variables
-        self.x, self.y = some_data  # Replace with actual data
-        self.test_size = 0.15
-        self.shuffle = False
-        self.random_state = 0
-        self.model_epochs = 3
+        self.data = pd.read_csv("msft.csv")
+        self.train_data = self.data.loc[:400, "Close"].values
+        self.test_data = self.data.loc[400:, "Close"].values
+        self.predictor = LSTMPredictor(self.train_data, self.test_data)
 
     def test_prepare_data(self):
-        # Test that the prepare_data function returns the correct shapes
-        x_train, x_test, y_train, y_test = prepare_data(self.x, self.y, self.test_size, self.shuffle, self.random_state)
-        self.assertEqual(x_train.shape[0], y_train.shape[0])
-        self.assertEqual(x_test.shape[0], y_test.shape[0])
+        x_train, y_train, x_test, y_test = self.predictor.prepare_data()
+        self.assertEqual(x_train.shape,
+                         (self.train_data.shape[0] - self.predictor.lookback, self.predictor.lookback, 1))
+        self.assertEqual(y_train.shape, (self.train_data.shape[0] - self.predictor.lookback,))
+        self.assertEqual(x_test.shape, (self.test_data.shape[0] - self.predictor.lookback, self.predictor.lookback, 1))
+        self.assertEqual(y_test.shape, (self.test_data.shape[0] - self.predictor.lookback,))
 
     def test_build_model(self):
-        # Test that the build_model function returns a keras model object
-        model = build_model()
-        self.assertIsInstance(model, keras.Model)
+        x_train, _, _, _ = self.predictor.prepare_data()
+        self.predictor.build_model(x_train)
+        self.assertIsInstance(self.predictor.model, tf.keras.Sequential)
+        self.assertEqual(len(self.predictor.model.layers), 4)
 
-    def test_train_and_predict(self):
-        # Test that the model can be trained and used to make predictions
-        x_train, x_test, y_train, y_test = prepare_data(self.x, self.y, self.test_size, self.shuffle, self.random_state)
-        model = build_model()
-        model.fit(x_train, y_train, batch_size=1, epochs=self.model_epochs)
-        predictions = model.predict(x_test)
-        self.assertEqual(predictions.shape[0], y_test.shape[0])
+    def test_train_model(self):
+        x_train, y_train, _, _ = self.predictor.prepare_data()
+        with patch.object(self.predictor.model, 'fit', return_value=None) as mock_fit:
+            self.predictor.train_model(x_train, y_train)
+            mock_fit.assert_called_once_with(x_train, y_train, batch_size=self.predictor.batch_size,
+                                             epochs=self.predictor.epochs)
+
+    def test_predict(self):
+        x_train, _, x_test, _ = self.predictor.prepare_data()
+        self.predictor.build_model(x_train)
+        self.predictor.train_model(x_train, self.train_data[self.predictor.lookback:])
+        self.predictor.predict(x_test)
+        self.assertEqual(self.predictor.predictions.shape, (self.test_data.shape[0] - self.predictor.lookback, 1))
+
+    def test_evaluate(self):
+        y_test = self.test_data[self.predictor.lookback:]
+        rmse = self.predictor.evaluate(y_test)
+        self.assertIsInstance(rmse, float)
+
+    def test_plot_predictions(self):
+        self.predictor.lookback = 10
+        x_train, _, x_test, _ = self.predictor.prepare_data()
+        self.predictor.build_model(x_train)
+        self.predictor.train_model(x_train, self.train_data[self.predictor.lookback:])
+        self.predictor.predict(x_test)
+        with patch("matplotlib.pyplot.show") as mock_show:
+            self.predictor.plot_predictions(self.data, self.train_data.shape[0])
+            mock_show.assert_called_once()
+
+
+@pytest.mark.integration
+def test_lstm_predictor():
+    data = pd.read_csv("msft.csv")
+    train_data = data.loc[:400, "Close"].values
+    test_data = data.loc[400:, "Close"].values
+    predictor = LSTMPredictor(train_data, test_data)
+    x_train, y_train, x_test, y_test = predictor.prepare_data()
+    predictor.build_model(x_train
+
 
 
 #RNN
 
-import pytest
-import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense, SimpleRNN, Dropout
+    class TestSimpleRNNModel(unittest.TestCase):
+        def setUp(self):
+            self.data = pd.read_csv('msft.csv')
+            self.model = SimpleRNNModel()
 
-# Dummy data for testing
-x_train = np.random.rand(100, 10, 1)
-y_train = np.random.rand(100, 1)
+        def test_create_model(self):
+            input_shape = (60, 1)
+            self.model.create_model(input_shape)
+            self.assertIsInstance(self.model.model, Sequential)
+            self.assertEqual(len(self.model.model.layers), 7)
 
-# Unit tests
-def test_model_add():
-    model = Sequential()
-    model.add(
-        SimpleRNN(
-            units=50,
-            activation="tanh",
-            return_sequences=True,
-            input_shape=(x_train.shape[1], 1),
-        )
-    )
-    assert len(model.layers) == 1
+        def test_fit(self):
+            scaler = MinMaxScaler()
+            x_train, y_train = preprocess_data(self.data, 100, scaler)
+            self.model.create_model((x_train.shape[1], 1))
+            history = self.model.fit(x_train, y_train, epochs=2, batch_size=32)
+            self.assertIsInstance(history, type(self.model.model.history))
 
-def test_model_compile():
-    model = Sequential()
-    model.add(
-        SimpleRNN(
-            units=50,
-            activation="tanh",
-            return_sequences=True,
-            input_shape=(x_train.shape[1], 1),
-        )
-    )
-    model.add(Dropout(0.2))
-    model.add(Dense(units=1))
-    model.compile(optimizer="adam", loss="mean_squared_error", metrics=["accuracy"])
-    assert model.optimizer.__class__.__name__ == "Adam"
-    assert model.loss == "mean_squared_error"
-    assert model.metrics[0] == "accuracy"
+        def test_predict(self):
+            scaler = MinMaxScaler()
+            x_train, y_train = preprocess_data(self.data, 100, scaler)
+            self.model.create_model((x_train.shape[1], 1))
+            self.model.fit(x_train, y_train, epochs=2, batch_size=32)
+            x_test = np.zeros((10, 60, 1))
+            y_pred = self.model.predict(x_test)
+            self.assertEqual(y_pred.shape, (10, 1))
 
-# Integration test
-def test_model_fit():
-    model = Sequential()
-    model.add(
-        SimpleRNN(
-            units=50,
-            activation="tanh",
-            return_sequences=True,
-            input_shape=(x_train.shape[1], 1),
-        )
-    )
-    model.add(Dropout(0.2))
-    model.add(
-        SimpleRNN(units=50, activation="tanh", return_sequences=True)
-    )
-    model.add(Dropout(0.2))
-    model.add(
-        SimpleRNN(units=50, activation="tanh", return_sequences=True)
-    )
-    model.add(Dropout(0.2))
-    model.add(SimpleRNN(units=50))
-    model.add(Dropout(0.2))
-    model.add(Dense(units=1))
-    model.compile(optimizer="adam", loss="mean_squared_error", metrics=["accuracy"])
-    history = model.fit(x_train, y_train, epochs=3, batch_size=32)
-    assert len(history.history["loss"]) == 3
-    assert history.history["loss"][0] != history.history["loss"][-1]
-    assert len(history.history["accuracy"]) == 3
-    assert history.history["accuracy"][0] != history.history["accuracy"][-1]
+        def test_split_train_test_data(self):
+            x = np.random.rand(100, 10)
+            y = np.random.rand(100, 1)
+            x_train, x_test, y_train, y_test = split_train_test_data(x, y, test_size=0.2)
+            self.assertEqual(x_train.shape[0], 80)
+            self.assertEqual(x_test.shape[0], 20)
+            self.assertEqual(y_train.shape[0], 80)
+            self.assertEqual(y_test.shape[0], 20)
+
+        def test_preprocess_data(self):
+            scaler = MinMaxScaler()
+            x_train, y_train = preprocess_data(self.data, 100, scaler)
+            self.assertEqual(x_train.shape[0], y_train.shape[0])
+            self.assertEqual(x_train.shape[1], 60)
+            self.assertEqual(x_train.shape[2], 1)
+
+        def test_inverse_transform(self):
+            scaler = MinMaxScaler()
+            x_train, y_train = preprocess_data(self.data, 100, scaler)
+            self.model.create_model((x_train.shape[1], 1))
+            self.model.fit(x_train, y_train, epochs=2, batch_size=32)
+            x_test = np.zeros((10, 60, 1))
+            y_pred = self.model.predict(x_test)
+            y_inv = inverse_transform(scaler, y_pred)
+            self.assertEqual(y_inv.shape, (10, 1))
+
+    if __name__ == '__main__':
+        unittest.main()
 
 
-#Gradient Boosting
-import pytest
-import pandas as pd
-import xgboost as xgb
-from sklearn.metrics import mean_squared_error
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split
+@pytest.mark.integration
+def test_simple_rnn_model_integration(self):
+    data = pd.read_csv('msft.csv')
+    scaler = MinMaxScaler()
+    x_train, y_train = preprocess_data(data, 100, scaler)
+    model = SimpleRNNModel(units=50, activation='tanh', dropout_rate=0.2, optimizer='adam', loss='mean_squared_error')
 
 
-@pytest.fixture
-def data():
-    ticker = yf.Ticker("MSFT")
-    data = ticker.history(period="max")
-    data = data.reset_index()
-    data["Date"] = pd.to_datetime(data["Date"])
-    data.set_index("Date", inplace=True)
-    data = data.drop(columns=["Dividends", "Stock Splits"])
-    data = data.dropna()
-    return data
+# Gradient Boosting
+
+class TestStockPredictor(unittest.TestCase):
+
+    def test_get_stock_data(self):
+        # test retrieval of data for MSFT ticker
+        data = get_stock_data("MSFT")
+        self.assertIsInstance(data, pd.DataFrame)
+        self.assertFalse(data.empty)
+
+    def test_train_gbm_model(self):
+        # test training of model on MSFT data
+        data = get_stock_data("MSFT")
+        X = data.drop(columns=["Close"])
+        y = data["Close"]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+        model = train_gbm_model(data=X_train, test_size=0.2, random_state=42)
+        self.assertIsInstance(model, GradientBoostingRegressor)
+        self.assertTrue(model.n_estimators > 0)
+        self.assertTrue(model.learning_rate > 0)
+        self.assertTrue(model.max_depth > 0)
+
+    def test_evaluate_gbm_model(self):
+        # test evaluation of model on MSFT test data
+        data = get_stock_data("MSFT")
+        X = data.drop(columns=["Close"])
+        y = data["Close"]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+        model = train_gbm_model(data=X_train, test_size=0.2, random_state=42)
+        mse = evaluate_gbm_model(model, X_test, y_test)
+        self.assertTrue(mse >= 0)
 
 
-@pytest.fixture
-def split_data(data):
-    X = data.drop(columns=["Close"])
-    y = data["Close"]
-    return train_test_split(X, y, test_size=0.2, shuffle=False)
+@pytest.mark.integration
+class TestGBMIntegration(unittest.TestCase):
+
+    def setUp(self):
+        self.msft_data = pd.read_csv("msft.csv")
+        self.msft_model = joblib.load("msft_model.pkl")
+
+    def test_evaluate_gbm_model(self):
+        X_test = self.msft_data.drop(columns=["Close"])
+        y_test = self.msft_data["Close"]
+        mse = evaluate_gbm_model(self.msft_model, X_test, y_test)
+        self.assertFalse(pd.isna(mse))
+        self.assertGreater(mse, 0)
+
+    def test_train_gbm_model(self):
+        msft_model = train_gbm_model(self.msft_data)
+        self.assertIsNotNone(msft_model)
+        self.assertTrue(any(msft_model.feature_importances_ > 0))
 
 
-def test_data_is_not_empty(data):
-    assert not data.empty, "Data is empty"
-
-
-def test_split_data_has_correct_shape(split_data):
-    X_train, X_test, y_train, y_test = split_data
-    assert len(X_train) == len(y_train), "X_train and y_train have different lengths"
-    assert len(X_test) == len(y_test), "X_test and y_test have different lengths"
-
-
-def test_gradient_boosting_regressor_fits_and_predicts_correctly(split_data):
-    X_train, X_test, y_train, y_test = split_data
-    gbm = GradientBoostingRegressor(n_estimators=50, learning_rate=0.2, max_depth=3, random_state=42)
-    gbm.fit(X_train, y_train)
-    y_pred = gbm.predict(X_test)
-    assert len(y_pred) == len(y_test), "Lengths of predicted and true values are different"
-    assert mean_squared_error(y_test, y_pred) >= 0, "Mean Squared Error should be non-negative"
-
-
-def test_xgboost_feature_importances_plot_has_correct_title(data):
-    xgb_model = xgb.XGBRegressor(objective="reg:squarederror", random_state=42)
-    xgb_model.fit(data.drop(columns=["Close"]), data["Close"])
-    importances = xgb_model.feature_importances_
-    feature_names = data.columns
-    indices = importances.argsort()[::-1]
-    plt.figure(figsize=(10, 6))
-    plt.title("Feature Importances")
-    plt.bar(range(data.shape[1]), importances[indices])
-    plt.xticks(range(data.shape[1]), feature_names[indices], rotation=90)
-    assert plt.gca().get_title() == "Feature Importances", "Incorrect title for feature importances plot"
+if __name__ == "__main__":
+    unittest.main()
