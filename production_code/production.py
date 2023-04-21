@@ -4,20 +4,15 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import math
-import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
 import yfinance as yf
 get_ipython().run_line_magic('matplotlib', 'inline')
-import plotly.express as px
 import warnings
 warnings.filterwarnings("ignore")
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import SimpleRNN
@@ -25,6 +20,9 @@ from keras.layers import Dropout
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import GradientBoostingRegressor
+import statsmodels.api as sm
+from sklearn.metrics import mean_squared_error
+import logging
 
 
 def predict_stock_prices(data, test_size=0.2, random_state=42):
@@ -373,3 +371,93 @@ if __name__ == "__main__":
     msft_model = train_gbm_model(msft_data)
     msft_mse = evaluate_gbm_model(msft_model, X_test, y_test)
     plot_feature_importances(msft_model, msft_data.columns)
+
+
+
+# ARIMA
+
+logging.basicConfig(level=logging.INFO)
+
+def train_arima_model(df):
+    """
+    Trains an ARIMA model on a given dataset, and returns the predicted values and mean squared error.
+
+    Parameters:
+        df (pandas.DataFrame): The input dataset to train the ARIMA model on.
+
+    Returns:
+        tuple: A tuple containing the predicted values and mean squared error.
+    """
+
+    # Split the data into train and test sets
+    train_data, test_data = df[0:int(len(df)*0.7)], df[int(len(df)*0.7):]
+
+    # Extract the 'Close' column from the train and test sets
+    training_data = train_data['Close'].values
+    test_data = test_data['Close'].values
+
+    # Create a list of historical data
+    history = [x for x in training_data]
+
+    # Create an empty list to store the predicted values
+    model_predictions = []
+
+    # Loop over the test data and make predictions
+    N_test_observations = len(test_data)
+    for time_point in range(N_test_observations):
+        # Fit an ARIMA model to the historical data
+        try:
+            model = sm.tsa.arima.ARIMA(history, order=(4,1,0))
+            model_fit = model.fit()
+        except Exception as e:
+            logging.error(f"ARIMA model failed to fit at time point {time_point}: {e}")
+            return None, None
+
+        # Make a prediction for the next time point
+        try:
+            output = model_fit.forecast()
+            yhat = output[0]
+        except Exception as e:
+            logging.error(f"ARIMA model failed to predict at time point {time_point}: {e}")
+            return None, None
+
+        # Append the predicted value to the list of predictions
+        model_predictions.append(yhat)
+
+        # Append the true test value to the historical data
+        true_test_value = test_data[time_point]
+        history.append(true_test_value)
+
+    # Calculate the mean squared error of the model predictions
+    MSE_error = mean_squared_error(test_data, model_predictions)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(model_predictions, label='Predicted')
+    ax.plot(test_data, label='True')
+    ax.legend()
+    ax.set_title('Stock Price Prediction')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Price')
+    plt.show()
+
+    # Return the predicted values and the mean squared error
+    return model_predictions, mse_error
+
+
+if __name__ == '__main__':
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+
+    # Load the data
+    data = pd.read_csv('msft.csv')
+
+    # Predict the stock prices
+    predictions, mse_error = predict_stock_prices(data)
+
+    # Log the mean squared error
+    logging.info(f'Testing Mean Squared Error: {mse_error}')
+
+
+
+
+

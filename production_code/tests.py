@@ -251,3 +251,38 @@ class TestGBMIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+# ARIMA
+
+class TrainArimaModelTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.df = pd.read_csv('msft.csv')
+
+    def test_train_arima_model_with_valid_data(self):
+        # Test the function with valid input data
+        predictions, mse_error = train_arima_model(self.df)
+        self.assertIsNotNone(predictions)
+        self.assertIsNotNone(mse_error)
+        self.assertIsInstance(predictions, list)
+        self.assertIsInstance(mse_error, float)
+
+    def test_train_arima_model_with_invalid_data(self):
+        # Test the function with invalid input data
+        invalid_df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        predictions, mse_error = train_arima_model(invalid_df)
+        self.assertIsNone(predictions)
+        self.assertIsNone(mse_error)
+
+    @patch('my_module.sm.tsa.arima.ARIMA')
+    def test_train_arima_model_with_arima_error(self, mock_arima):
+        # Test the function when the ARIMA model fails to fit or predict
+        mock_arima.return_value = MagicMock(side_effect=Exception('ARIMA error'))
+        predictions, mse_error = train_arima_model(self.df)
+        self.assertIsNone(predictions)
+        self.assertIsNone(mse_error)
+
+if __name__ == '__main__':
+    unittest.main()
