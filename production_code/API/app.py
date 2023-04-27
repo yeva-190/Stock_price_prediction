@@ -122,7 +122,7 @@ def preprocess_data(data, training_data_len, scaler):
     return x_train, y_train
 
 
-@app.route('/', methods=['POST'])
+@app.route('/RNN', methods=['POST'])
 def predict_stock_price():
     # Load the saved model and scaler
     model = load_model('simple_rnn_model.h5')
@@ -185,7 +185,7 @@ def train_gbm_model(data, test_size=0.2, random_state=42):
     return gbm
 
 
-@app.route('/predict', methods=['POST'])
+@app.route('/gbm', methods=['POST'])
 def predict():
     # Load the trained model
     model = joblib.load('gbm_model.joblib')
