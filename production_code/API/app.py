@@ -1,7 +1,17 @@
 from flask import Flask, request, jsonify
 import pandas as pd
-from lstm import LSTMPredictor
+#from lstm import LSTMPredictor
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
 from linear_regression import predict_stock_prices
+#from tensorflow import tf
+import yfinance as yf
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingRegressor
+import joblib as joblib
+import logging
+from flask import Flask, jsonify
+
 
 
 
@@ -11,7 +21,11 @@ app = Flask(__name__)
 @app.route('/linear-regression', methods=['POST'])
 def linear_regression():
     # Get the request data
-    data = pd.read_json(request.data)
+    data = yf.download('MSFT', start='2021-01-01', end='2023-05-08')
+    # convert the data to a JSON string
+    data_json = data.to_json()
+    # return the JSON response
+    return jsonify(data_json)
 
     # Call the model function and get the results
     predicted, coef, intercept, confidence = predict_stock_prices(data)
@@ -31,7 +45,11 @@ def linear_regression():
 @app.route('/lstm', methods=['POST'])
 def lstm():
     # Get the request data
-    data = pd.read_json(request.data)
+    data = yf.download('MSFT', start='2021-01-01', end='2023-05-08')
+    # convert the data to a JSON string
+    data_json = data.to_json()
+    # return the JSON response
+    return jsonify(data_json)
 
     # Call the model function and get the results
     predictor = LSTMPredictor(data['Close'].values, lookback=60, lstm_units=100, dense_units=25, epochs=3, batch_size=1)
@@ -53,6 +71,12 @@ def lstm():
 
 class SimpleRNNModel:
     # class definition here
+
+    data = yf.download('MSFT', start='2021-01-01', end='2023-05-08')
+    # convert the data to a JSON string
+    data_json = data.to_json()
+    # return the JSON response
+    return jsonify(data_json)
 
     def __init__(self, units=50, activation="tanh", dropout_rate=0.2, optimizer="adam", loss="mean_squared_error"):
         self.units = units
@@ -130,7 +154,11 @@ def predict_stock_price():
     scaler.min_, scaler.scale_ = np.load('scaler_params.npy')
 
     # Get the stock data from the request
-    data = pd.read_json(request.json)
+    data = yf.download('MSFT', start='2021-01-01', end='2023-05-08')
+    # convert the data to a JSON string
+    data_json = data.to_json()
+    # return the JSON response
+    return jsonify(data_json)
 
     # Preprocess the data
     x_pred = preprocess_data(data, 60, scaler)
@@ -191,10 +219,14 @@ def predict():
     model = joblib.load('gbm_model.joblib')
 
     # Get the request data
-    request_data = request.get_json()
+    data = yf.download('MSFT', start='2021-01-01', end='2023-05-08')
+    # convert the data to a JSON string
+    data_json = data.to_json()
+    # return the JSON response
+    return jsonify(data_json)
 
     # Parse the request data into a Pandas DataFrame
-    X = pd.DataFrame.from_dict(request_data)
+    X = pd.DataFrame.from_dict(data)
 
     # Make the prediction
     y_pred = model.predict(X)
@@ -216,13 +248,16 @@ logging.basicConfig(level=logging.INFO)
 @app.route('/train_arima_model', methods=['POST'])
 def train_arima_model_endpoint():
     # Get the input data from the request
-    data = request.get_json()
+    data = yf.download('MSFT', start='2021-01-01', end='2023-05-08')
+    # convert the data to a JSON string
+    data_json = data.to_json()
+    # return the JSON response
+    return jsonify(data_json)
 
     # Convert the input data to a pandas DataFrame
-    df = pd.DataFrame.from_dict(data)
 
     # Train the ARIMA model
-    predictions, mse_error = train_arima_model(df)
+    predictions, mse_error = train_arima_model(data)
 
     # If the model failed to fit or predict, return an error response
     if predictions is None or mse_error is None:
@@ -237,7 +272,6 @@ def train_arima_model_endpoint():
         'mse_error': float(mse_error)
     }
     return jsonify(response)
-
 
 
 
